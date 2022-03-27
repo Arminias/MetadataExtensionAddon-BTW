@@ -522,6 +522,62 @@ public abstract class World implements IBlockAccess
         }
     }
 
+    //EDIT
+    public boolean setBlockWithExtra(int par1, int par2, int par3, int par4, int par5, int par6, int extraMeta)
+    {
+        if (par1 >= -30000000 && par3 >= -30000000 && par1 < 30000000 && par3 < 30000000)
+        {
+            if (par2 < 0)
+            {
+                return false;
+            }
+            else if (par2 >= 256)
+            {
+                return false;
+            }
+            else
+            {
+                Chunk var7 = this.getChunkFromChunkCoords(par1 >> 4, par3 >> 4);
+                int var8 = 0;
+
+                if ((par6 & 1) != 0)
+                {
+                    var8 = var7.getBlockID(par1 & 15, par2, par3 & 15);
+                }
+
+                boolean var9 = var7.setBlockIDWithMetadataAndExtraMetadata(par1 & 15, par2, par3 & 15, par4, par5, extraMeta);
+                this.theProfiler.startSection("checkLight");
+                this.updateAllLightTypes(par1, par2, par3);
+                this.theProfiler.endSection();
+
+                if (var9)
+                {
+                    if ((par6 & 2) != 0 && (!this.isRemote || (par6 & 4) == 0))
+                    {
+                        this.markBlockForUpdate(par1, par2, par3);
+                    }
+
+                    if (!this.isRemote && (par6 & 1) != 0)
+                    {
+                        this.notifyBlockChange(par1, par2, par3, var8);
+                        Block var10 = Block.blocksList[par4];
+
+                        if (var10 != null && var10.hasComparatorInputOverride())
+                        {
+                            this.func_96440_m(par1, par2, par3, par4);
+                        }
+                    }
+                }
+
+                return var9;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     /**
      * Returns the block's material.
      */

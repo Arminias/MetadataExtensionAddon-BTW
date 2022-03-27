@@ -29,6 +29,7 @@ public interface IBlockAccess
      * Returns the block metadata at coords x,y,z
      */
     int getBlockMetadata(int var1, int var2, int var3);
+
     //EDIT
     int getBlockExtraMetadata(int var1, int var2, int var3);
 

@@ -676,6 +676,157 @@ public class Chunk
     }
 
     /**
+     * Sets a blockID of a position within a chunk with metadata and extra metadata. Args: x, y, z, blockID, metadata, extra metadata
+     */
+    public boolean setBlockIDWithMetadataAndExtraMetadata(int par1, int par2, int par3, int par4, int par5, int extraMeta)
+    {
+        int var6 = par3 << 4 | par1;
+
+        if (par2 >= this.precipitationHeightMap[var6] - 1)
+        {
+            this.precipitationHeightMap[var6] = -999;
+        }
+
+        int var7 = this.heightMap[var6];
+        int var8 = this.getBlockID(par1, par2, par3);
+        int var9 = this.getBlockMetadata(par1, par2, par3);
+        int oldExtraMeta = this.getBlockExtraMetadata(par1, par2, par3);
+
+        if (var8 == par4 && var9 == par5 && oldExtraMeta == extraMeta)
+        {
+            return false;
+        }
+        else
+        {
+            ExtendedBlockStorage var10 = this.storageArrays[par2 >> 4];
+            boolean var11 = false;
+
+            if (var10 == null)
+            {
+                if (par4 == 0)
+                {
+                    return false;
+                }
+
+                var10 = this.storageArrays[par2 >> 4] = new ExtendedBlockStorage(par2 >> 4 << 4, !this.worldObj.provider.hasNoSky);
+                var11 = par2 >= var7;
+            }
+
+            int var12 = this.xPosition * 16 + par1;
+            int var13 = this.zPosition * 16 + par3;
+
+            if (var8 != 0 && !this.worldObj.isRemote)
+            {
+                Block.blocksList[var8].onSetBlockIDWithMetaData(this.worldObj, var12, par2, var13, var9);
+            }
+
+            var10.setExtBlockID(par1, par2 & 15, par3, par4);
+
+            if (var8 != 0)
+            {
+                if (!this.worldObj.isRemote)
+                {
+                    Block.blocksList[var8].breakBlock(this.worldObj, var12, par2, var13, var8, var9);
+                }
+                // FCMOD: Code change
+                /*
+                else if (Block.blocksList[var8] instanceof ITileEntityProvider && var8 != par4)
+                {
+                    this.worldObj.removeBlockTileEntity(var12, par2, var13);
+                }
+                */
+                else if ( var8 != par4 )
+                {
+                    Block.blocksList[var8].ClientBreakBlock(this.worldObj, var12, par2, var13, var8, var9);
+
+                    if ( Block.blocksList[var8] instanceof ITileEntityProvider && Block.blocksList[var8].ShouldDeleteTileEntityOnBlockChange( par4 ) )
+                    {
+                        this.worldObj.removeBlockTileEntity(var12, par2, var13);
+                    }
+                }
+                // END FCMOD
+            }
+
+            if (var10.getExtBlockID(par1, par2 & 15, par3) != par4)
+            {
+                return false;
+            }
+            else
+            {
+                var10.setExtBlockMetadata(par1, par2 & 15, par3, par5);
+                //EDIT
+                var10.setExtBlockExtraMetadata(par1, par2 & 15, par3, extraMeta);
+
+                if (var11)
+                {
+                    this.generateSkylightMap();
+                }
+                else
+                {
+                    if (Block.lightOpacity[par4 & 4095] > 0)
+                    {
+                        if (par2 >= var7)
+                        {
+                            this.relightBlock(par1, par2 + 1, par3);
+                        }
+                    }
+                    else if (par2 == var7 - 1)
+                    {
+                        this.relightBlock(par1, par2, par3);
+                    }
+
+                    this.propagateSkylightOcclusion(par1, par3);
+                }
+
+                TileEntity var14;
+
+                if (par4 != 0)
+                {
+                    if (!this.worldObj.isRemote)
+                    {
+                        Block.blocksList[par4].onBlockAdded(this.worldObj, var12, par2, var13);
+                    }
+                    // FCMOD: Code added
+                    else if ( var8 != par4 )
+                    {
+                        Block.blocksList[par4].ClientBlockAdded(worldObj, var12, par2, var13);
+                    }
+                    // END FCMOD
+
+                    if (Block.blocksList[par4] instanceof ITileEntityProvider)
+                    {
+                        var14 = this.getChunkBlockTileEntity(par1, par2, par3);
+
+                        if (var14 == null)
+                        {
+                            var14 = ((ITileEntityProvider)Block.blocksList[par4]).createNewTileEntity(this.worldObj);
+                            this.worldObj.setBlockTileEntity(var12, par2, var13, var14);
+                        }
+
+                        if (var14 != null)
+                        {
+                            var14.updateContainingBlockInfo();
+                        }
+                    }
+                }
+                else if (var8 > 0 && Block.blocksList[var8] instanceof ITileEntityProvider)
+                {
+                    var14 = this.getChunkBlockTileEntity(par1, par2, par3);
+
+                    if (var14 != null)
+                    {
+                        var14.updateContainingBlockInfo();
+                    }
+                }
+
+                this.isModified = true;
+                return true;
+            }
+        }
+    }
+
+
+    /**
      * Set the metadata of a block in the chunk
      */
     public boolean setBlockMetadata(int par1, int par2, int par3, int par4)
